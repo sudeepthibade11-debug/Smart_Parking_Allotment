@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <!-- ── Hero ── -->
+  <div class="dashboard-hero">
+    <div class="hero-left">
+      <h1>Smart<span>Park</span></h1>
+      <div class="hero-subtitle">Intelligent Parking Allocation &amp; Management — Right Vehicle · Right Slot · Right Time</div>
+    </div>
+    <div class="flex-row flex-wrap" style="gap:0.65rem">
+
+      <!-- Real system-status badge: JS updates class + text -->
+      <div class="hero-status" id="hero-status-badge">
+        <div class="status-dot" id="hero-status-dot"></div>
+        <span class="hero-status-text" id="hero-status-text">Checking…</span>
+      </div>
+
+      <button class="btn btn-primary" onclick="window.location='/parking'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        Park Vehicle
+      </button>
+      <button class="btn btn-secondary" onclick="openExitModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Exit Vehicle
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Metric Cards (all clickable) ── -->
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(148px,1fr))">
+
+    <!-- TOTAL SLOTS → Parking Lot (all slots) -->
+    <div class="stat-card cyan stat-card-clickable"
+         onclick="statCardNav('/parking','slot:all')"
+         title="View full parking lot layout">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M3 9h18M3 15h18M9 3v18M15 3v18"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-label">Total Slots</div>
+          <div class="stat-card-hint">View all slots →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AVAILABLE → Parking Lot (highlight available) -->
+    <div class="stat-card green stat-card-clickable"
+         onclick="statCardNav('/parking','slot:available')"
+         title="See which slots are free">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-available">—</div>
+          <div class="stat-label">Available</div>
+          <div class="stat-card-hint">Show free slots →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OCCUPIED → Parking Lot (highlight occupied) -->
+    <div class="stat-card red stat-card-clickable"
+         onclick="statCardNav('/parking','slot:occupied')"
+         title="See occupied slots and current vehicles">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="1" y="3" width="15" height="13" rx="2"/>
+            <path d="M16 8h4l3 3v5h-7V8z"/>
+            <circle cx="5.5" cy="18.5" r="2.5"/>
+            <circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-occupied">—</div>
+          <div class="stat-label">Occupied</div>
+          <div class="stat-card-hint">Show occupied →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESERVED → Parking Lot (highlight reserved) -->
+    <div class="stat-card yellow stat-card-clickable"
+         onclick="statCardNav('/parking','slot:reserved')"
+         title="View reserved slots">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-reserved">—</div>
+          <div class="stat-label">Reserved</div>
+          <div class="stat-card-hint">View reserved →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TODAY'S ENTRIES → History (today filter) -->
+    <div class="stat-card purple stat-card-clickable"
+         onclick="statCardNav('/history','hist:today')"
+         title="See today's vehicle entries">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-today">—</div>
+          <div class="stat-label">Today's Entries</div>
+          <div class="stat-card-hint">View history →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AVG PARK TIME → History (completed filter) -->
+    <div class="stat-card orange stat-card-clickable"
+         onclick="statCardNav('/history','hist:completed')"
+         title="See parking duration breakdown">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value" id="stat-avg-time" style="font-size:1.3rem">—</div>
+          <div class="stat-label">Avg Park Time</div>
+          <div class="stat-card-hint">View durations →</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Utilization bar ── -->
+  <div class="card mb-2" style="padding:1rem 1.25rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+      <span class="card-title" style="margin-bottom:0;font-size:0.7rem">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        Lot Utilization
+      </span>
+      <span style="font-size:0.85rem;font-weight:800;color:var(--cyan)" id="stat-utilization">0%</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="utilization-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- ── Bottom grid ── -->
+  <div class="grid-2" style="gap:1.25rem">
+
+    <!-- Currently Parked -->
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        Currently Parked
+      </div>
+      <div id="vehicles-list">
+        <div class="text-muted" style="font-size:0.82rem;padding:0.5rem 0">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Right: Insights + Algo cards -->
+    <div style="display:flex;flex-direction:column;gap:1.1rem">
+
+      <!-- Smart Insights -->
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Smart Insights
+        </div>
+        <div class="insights-grid">
+          <div class="insight-item">
+            <div class="insight-label">Utilization</div>
+            <div class="insight-value" id="ins-util">—</div>
+            <div class="insight-sub">of total capacity</div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-label">Available EV</div>
+            <div class="insight-value" id="ins-ev">—</div>
+            <div class="insight-sub">EV-compatible slots</div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-label">Priority Zones</div>
+            <div class="insight-value" id="ins-pz">2</div>
+            <div class="insight-sub">slots A1, A2</div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-label">Busiest Zone</div>
+            <div class="insight-value" id="ins-zone">—</div>
+            <div class="insight-sub">by occupancy</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+
+<!-- ── Exit Vehicle Modal ── -->
+<div class="modal-backdrop" id="exit-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">Exit Vehicle</span>
+      <button class="modal-close" onclick="closeModal('exit-modal')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Vehicle Number</label>
+      <input type="text" id="exit-vehicle-no" class="form-control"
+             placeholder="e.g. MH12AB1234"
+             maxlength="13"
+             style="text-transform:uppercase;font-size:1rem;font-weight:600"
+             oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
+    </div>
+    <div style="display:flex;gap:0.65rem;margin-top:1.25rem">
+      <button class="btn btn-danger btn-lg" id="exit-btn"
+              onclick="exitVehicleDash()" style="flex:1">Exit Vehicle</button>
+      <button class="btn btn-secondary" onclick="closeModal('exit-modal')">Cancel</button>
+    </div>
+    <div id="bs-steps-wrapper" style="display:none;margin-top:1rem">
+      <div class="card-title" style="font-size:0.7rem;margin-bottom:0.4rem">Binary Search Log</div>
+      <div class="algo-steps" id="bs-steps-panel"></div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/parking.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  refreshVehicleList();
+  loadInsights();
+});
+
+function openExitModal() { openModal('exit-modal'); }
+
+async function exitVehicleDash() {
+  const input = document.getElementById('exit-vehicle-no');
+  const vehicleNo = input?.value.trim().toUpperCase();
+  if (!vehicleNo) { showToast('error', 'Required', 'Enter a vehicle number.'); return; }
+  const btn = document.getElementById('exit-btn');
+  setLoading(btn, true, 'Processing…');
+  try {
+    const data = await API.post('/api/exit', { vehicle_no: vehicleNo });
+    if (data.error) { showToast('error', 'Exit Failed', data.error); return; }
+    showToast('success', 'Vehicle Exited',
+      `${vehicleNo} freed slot ${data.freed_slot} — ${formatDuration(data.duration_mins)}`);
+    showBSSteps(data.binary_search_steps || []);
+    closeModal('exit-modal');
+    // Refresh stats + vehicle list immediately after exit
+    await refreshStats();
+    await refreshVehicleList();
+    await loadInsights();
+    if (input) input.value = '';
+  } catch(e) { showToast('error', 'Error', 'Could not reach server.'); }
+  finally { setLoading(btn, false, 'Exit Vehicle'); }
+}
+
+async function loadInsights() {
+  try {
+    const [stats, slots, vehicles] = await Promise.all([
+      API.get('/api/stats'),
+      API.get('/api/slots'),
+      API.get('/api/vehicles'),
+    ]);
+
+    const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    setEl('ins-util', stats.utilization + '%');
+
+    const evAvail = slots.filter(s => s.vehicle_type === 'ev' && s.status === 'available').length;
+    setEl('ins-ev', evAvail);
+
+    const zoneCounts = {};
+    vehicles.forEach(v => {
+      const z = v.row_label || (v.slot_id ? v.slot_id[0] : '?');
+      zoneCounts[z] = (zoneCounts[z] || 0) + 1;
+    });
+    const topZone = Object.entries(zoneCounts).sort((a, b) => b[1] - a[1])[0];
+    setEl('ins-zone', topZone ? `Zone ${topZone[0]}` : 'None');
+
+  } catch(e) { console.warn('Insights load failed', e); }
+}
+</script>
+{% endblock %}

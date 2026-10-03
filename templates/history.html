@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+    <div>
+      <h1>Parking History</h1>
+      <p class="text-muted">Complete record of all vehicle entries and exits</p>
+    </div>
+    <div class="flex-row">
+      <input type="text" id="search-input" class="form-control"
+             placeholder="Search vehicle, slot, type…"
+             style="width:220px;font-size:0.84rem"
+             oninput="filterHistory()"/>
+      <button class="btn btn-secondary btn-sm" onclick="loadHistory()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:1.25rem">
+    <div class="stat-card cyan">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+        <div class="stat-body"><div class="stat-value" id="hist-total">—</div><div class="stat-label">Total Records</div></div>
+      </div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+        <div class="stat-body"><div class="stat-value" id="hist-exited">—</div><div class="stat-label">Exited</div></div>
+      </div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+        <div class="stat-body"><div class="stat-value" id="hist-active">—</div><div class="stat-label">Still Parked</div></div>
+      </div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-card-inner">
+        <div class="stat-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="stat-body"><div class="stat-value" id="hist-avg">—</div><div class="stat-label">Avg Duration</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="filter-tabs" id="filter-tabs">
+    <button class="filter-tab active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-tab" onclick="setFilter('active',this)">Active</button>
+    <button class="filter-tab" onclick="setFilter('completed',this)">Completed</button>
+    <button class="filter-tab" onclick="setFilter('car',this)">Car</button>
+    <button class="filter-tab" onclick="setFilter('bike',this)">Bike</button>
+    <button class="filter-tab" onclick="setFilter('ev',this)">EV</button>
+    <button class="filter-tab" onclick="setFilter('emergency',this)">Emergency</button>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table class="data-table" id="history-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Vehicle No</th>
+            <th>Type</th>
+            <th>Slot</th>
+            <th>Priority</th>
+            <th>Entry Time</th>
+            <th>Exit Time</th>
+            <th>Duration</th>
+            <th>Algorithm</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="history-body">
+          <tr>
+            <td colspan="10" style="text-align:center;padding:2.5rem">
+              <span class="spinner"></span>
+              <span style="margin-left:0.5rem;color:var(--text-muted)">Loading…</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let historyData  = [];
+let activeFilter = 'all';
+
+/* ── Vehicle type SVG icon (inline, no emoji) ──────────────────── */
+function typeIconSVG(type) {
+  const icons = {
+    car:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+    bike: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M12 17V7l-3 5h7"/></svg>`,
+    ev:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  };
+  return icons[type] || icons.car;
+}
+
+function priorityBadge(p) {
+  const map = {
+    normal:         `<span class="badge badge-cyan">Normal</span>`,
+    senior_citizen: `<span class="badge badge-yellow">Senior</span>`,
+    accessible:     `<span class="badge badge-purple">Accessible</span>`,
+    emergency:      `<span class="badge badge-red">Emergency</span>`,
+  };
+  return map[p] || `<span class="badge badge-cyan">${p}</span>`;
+}
+
+function typeBadge(t) {
+  const col = { car:'badge-cyan', bike:'badge-green', ev:'badge-purple' }[t] || 'badge-cyan';
+  return `<span class="badge ${col}" style="gap:0.3rem">${typeIconSVG(t)} ${t.charAt(0).toUpperCase()+t.slice(1)}</span>`;
+}
+
+async function loadHistory() {
+  historyData = await API.get('/api/history');
+  applyFilter();
+  updateSummary(historyData);
+}
+
+function updateSummary(data) {
+  const setEl = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+  setEl('hist-total', data.length);
+  const exited = data.filter(r => r.exit_time).length;
+  const active = data.filter(r => !r.exit_time).length;
+  const durs   = data.filter(r => r.duration_mins != null).map(r => r.duration_mins);
+  const avg    = durs.length ? Math.round(durs.reduce((a,b)=>a+b,0)/durs.length) : 0;
+  setEl('hist-exited', exited);
+  setEl('hist-active', active);
+  setEl('hist-avg',    formatDuration(avg));
+}
+
+function setFilter(filter, btn) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilter();
+}
+
+function applyFilter() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  let data = historyData;
+  if (activeFilter === 'active')    data = data.filter(r => !r.exit_time);
+  if (activeFilter === 'completed') data = data.filter(r => !!r.exit_time);
+  if (['car','bike','ev'].includes(activeFilter)) data = data.filter(r => r.vehicle_type === activeFilter);
+  if (activeFilter === 'emergency') data = data.filter(r => r.priority === 'emergency');
+  if (q) data = data.filter(r =>
+    r.vehicle_no.toLowerCase().includes(q) ||
+    r.slot_id.toLowerCase().includes(q) ||
+    r.vehicle_type.toLowerCase().includes(q)
+  );
+  renderHistory(data);
+}
+
+function filterHistory() { applyFilter(); }
+
+function renderHistory(data) {
+  const tbody = document.getElementById('history-body');
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="10">
+      <div class="empty-state">
+        <svg class="empty-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <h3>No records match this filter</h3>
+      </div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map((r, i) => `
+    <tr class="fade-in">
+      <td>${i + 1}</td>
+      <td><strong>${r.vehicle_no}</strong></td>
+      <td>${typeBadge(r.vehicle_type)}</td>
+      <td><span style="font-weight:800;color:var(--cyan);font-size:0.88rem;letter-spacing:0.02em">${r.slot_id}</span></td>
+      <td>${priorityBadge(r.priority)}</td>
+      <td style="font-size:0.78rem">${formatTime(r.entry_time)}</td>
+      <td style="font-size:0.78rem">${r.exit_time ? formatTime(r.exit_time) : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${r.duration_mins != null ? formatDuration(r.duration_mins) : '<span class="badge badge-green pulse">Active</span>'}</td>
+      <td><span style="font-family:\'Courier New\',monospace;font-size:0.72rem;color:var(--text-muted)">${r.algorithm_used || 'greedy+pq'}</span></td>
+      <td>${r.exit_time
+        ? '<span class="badge badge-cyan">Completed</span>'
+        : '<span class="badge badge-green">Parked</span>'}</td>
+    </tr>`).join('');
+}
+
+document.addEventListener('DOMContentLoaded', loadHistory);
+</script>
+{% endblock %}

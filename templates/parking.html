@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block title %}Parking Lot{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <!-- Page Header -->
+  <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+    <div>
+      <h1>🏗️ Interactive Parking Lot</h1>
+      <p class="text-muted">Click any available slot to select it &bull; Use Park / Exit buttons to simulate vehicles</p>
+    </div>
+    <div class="flex-row">
+      <button class="btn btn-primary" onclick="openParkModal()">🚗 Park Vehicle</button>
+      <button class="btn btn-danger"  onclick="openModal('exit-quick-modal')">🚪 Exit Vehicle</button>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="floor-stats-bar">
+    <div class="floor-stat"><span class="floor-stat-val" id="fs-total">20</span><span class="floor-stat-lbl">Total Slots</span></div>
+    <div class="floor-stat green"><span class="floor-stat-val" id="fs-avail">—</span><span class="floor-stat-lbl">Available</span></div>
+    <div class="floor-stat red"><span class="floor-stat-val" id="fs-occ">—</span><span class="floor-stat-lbl">Occupied</span></div>
+    <div class="floor-stat yellow"><span class="floor-stat-val" id="fs-res">0</span><span class="floor-stat-lbl">Reserved</span></div>
+    <div class="floor-stat" style="margin-left:auto">
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot green"></div>Available</div>
+        <div class="legend-item"><div class="legend-dot red"></div>Occupied</div>
+        <div class="legend-item"><div class="legend-dot yellow"></div>Reserved</div>
+        <div class="legend-item"><div class="legend-dot cyan"></div>Selected</div>
+        <div class="legend-item"><span style="font-size:0.75rem;color:var(--yellow)">⭐</span>&nbsp;Priority</div>
+        <div class="legend-item"><span style="font-size:0.75rem;color:var(--purple)">EV</span>&nbsp;EV slot</div>
+        <div class="legend-item"><span style="font-size:0.75rem;color:var(--cyan)">♿</span>&nbsp;Accessible</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floor Selector -->
+  <div class="floor-selector-wrap">
+    <div class="floor-selector" id="floor-selector">
+      <button class="floor-btn active" data-floor="1" onclick="selectFloor(1)">
+        <span class="floor-btn-label">Floor 1</span>
+        <span class="floor-btn-sub" id="floor-1-sub">Loading…</span>
+      </button>
+      <button class="floor-btn" data-floor="2" onclick="selectFloor(2)">
+        <span class="floor-btn-label">Floor 2</span>
+        <span class="floor-btn-sub" id="floor-2-sub">Loading…</span>
+      </button>
+      <button class="floor-btn" data-floor="3" onclick="selectFloor(3)">
+        <span class="floor-btn-label">Floor 3</span>
+        <span class="floor-btn-sub" id="floor-3-sub">Loading…</span>
+      </button>
+    </div>
+    <span style="font-size:0.78rem;color:var(--text-muted);margin-left:1rem">3 Floors · 60 Total Slots</span>
+  </div>
+
+  <div class="lot-and-panel">
+
+    <!-- ── PARKING LOT MAP ── -->
+    <div class="parking-lot-outer">
+      <div class="parking-lot-wrapper" id="parking-lot-wrapper">
+
+        <!-- Entrance -->
+        <div class="map-entrance">
+          <div class="map-entrance-road">
+            <svg width="60" height="40" viewBox="0 0 60 40"><polygon points="30,38 10,4 50,4" fill="var(--green)" opacity="0.85"/><text x="30" y="26" text-anchor="middle" fill="#000" font-size="11" font-weight="bold">IN</text></svg>
+          </div>
+          <div class="map-entrance-label">ENTRANCE</div>
+        </div>
+
+        <!-- Floor label badge inside the map -->
+        <div id="floor-map-label" style="text-align:center;margin:0.3rem 0 0.1rem">
+          <span style="font-size:0.68rem;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;
+                       color:var(--cyan);background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.25);
+                       border-radius:20px;padding:0.2rem 0.85rem">Floor 1</span>
+        </div>
+
+        <!-- Road A -->
+        <div class="map-road">
+          <div class="road-stripe-wrap"><div class="road-stripe"></div></div>
+          <span class="road-dir-arrow">&#8594;</span>
+          <span class="road-label-text">DRIVING LANE</span>
+          <span class="road-dir-arrow">&#8594;</span>
+        </div>
+
+        <!-- Rows 1st pair (A/E/I depending on floor) -->
+        <div class="map-bay-group" id="bay-group-AB">
+          <div class="bay-row-label" id="zone-a-label">ZONE A</div>
+          <div class="parking-row" id="row-A"></div>
+          <div class="parking-row" id="row-B"></div>
+        </div>
+
+        <!-- Road B -->
+        <div class="map-road">
+          <div class="road-stripe-wrap"><div class="road-stripe"></div></div>
+          <span class="road-dir-arrow">&#8594;</span>
+          <span class="road-label-text">DRIVING LANE</span>
+          <span class="road-dir-arrow">&#8594;</span>
+        </div>
+
+        <!-- Rows 2nd pair (C/G/K depending on floor) -->
+        <div class="map-bay-group" id="bay-group-CD">
+          <div class="bay-row-label" id="zone-b-label">ZONE B</div>
+          <div class="parking-row" id="row-C"></div>
+          <div class="parking-row" id="row-D"></div>
+        </div>
+
+        <!-- Road C / exit -->
+        <div class="map-road">
+          <div class="road-stripe-wrap"><div class="road-stripe"></div></div>
+          <span class="road-dir-arrow">&#8594;</span>
+          <span class="road-label-text">EXIT LANE</span>
+          <span class="road-dir-arrow">&#8594;</span>
+        </div>
+
+        <!-- Exit -->
+        <div class="map-exit">
+          <div class="map-exit-label">EXIT</div>
+          <div class="map-exit-road">
+            <svg width="60" height="40" viewBox="0 0 60 40"><polygon points="30,2 10,36 50,36" fill="var(--red)" opacity="0.85"/><text x="30" y="23" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">OUT</text></svg>
+          </div>
+        </div>
+
+        <!-- Car animation layer -->
+        <div id="car-layer" style="position:absolute;inset:0;pointer-events:none;z-index:20"></div>
+
+      </div><!-- /parking-lot-wrapper -->
+    </div><!-- /parking-lot-outer -->
+
+    <!-- ── RIGHT PANEL ── -->
+    <div class="lot-right-panel">
+
+      <!-- Slot Detail -->
+      <div class="card" id="slot-info-card">
+        <div class="card-title">📍 Slot Information</div>
+        <div id="slot-detail-panel" class="slot-detail-panel">
+          <div class="slot-hint-msg">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+            <span>Click any slot on the map to view details</span>
+          </div>
+        </div>
+        <div id="slot-action-area" style="display:none;margin-top:0.75rem"></div>
+      </div>
+
+      <!-- Algorithm Activity — hidden container, IDs kept for JS -->
+      <div style="display:none">
+        <div id="viz-steps"></div>
+        <div id="bs-steps-wrapper"><div id="bs-steps-panel"></div></div>
+      </div>
+
+      <!-- Currently Parked -->
+      <div class="card">
+        <div class="card-title">🚗 Currently Parked</div>
+        <div id="vehicles-list"><div class="text-muted" style="font-size:0.82rem">Loading…</div></div>
+      </div>
+
+    </div><!-- /lot-right-panel -->
+  </div><!-- /lot-and-panel -->
+</div><!-- /page -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     PARK VEHICLE MODAL  (two-mode: Smart | Manual)
+══════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="park-modal">
+  <div class="modal park-modal-wide">
+    <div class="modal-header">
+      <span class="modal-title">🚗 Park a Vehicle</span>
+      <button class="modal-close" onclick="closeParkModal()">&times;</button>
+    </div>
+
+    <!-- Step 1 – Vehicle details -->
+    <div id="pm-step-details">
+      <div class="grid-2" style="gap:0.75rem">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Vehicle Number *</label>
+          <input type="text" id="vehicle-no" class="form-control"
+                 placeholder="e.g. MH12AB1234"
+                 maxlength="13"
+                 style="text-transform:uppercase;font-size:1.05rem;font-weight:600;letter-spacing:0.06em"
+                 oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,''); validateVehicleNo(this)"/>
+          <div class="vno-feedback" id="vno-feedback"></div>
+          <div class="vno-format-hint">
+            Format: State Code + District + Series + Number &nbsp;&bull;&nbsp;
+            <span style="font-family:'Courier New',monospace;color:var(--cyan)">MH 12 AB 1234</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vehicle Type *</label>
+          <select id="vehicle-type" class="form-control">
+            <option value="car">🚗 Car</option>
+            <option value="bike">🏍️ Bike</option>
+            <option value="ev">⚡ EV</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <select id="priority" class="form-control">
+            <option value="normal">Normal</option>
+            <option value="senior_citizen">👴 Senior Citizen</option>
+            <option value="accessible">♿ Accessible</option>
+            <option value="emergency">🚨 Emergency</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Mode selector -->
+      <div class="mode-selector-wrap">
+        <div class="mode-selector-title">PARKING PREFERENCE</div>
+        <div class="mode-options">
+          <label class="mode-option" id="mode-opt-smart">
+            <input type="radio" name="park-mode" value="smart" checked onchange="onModeChange('smart')"/>
+            <div class="mode-option-body">
+              <div class="mode-option-icon">🤖</div>
+              <div>
+                <div class="mode-option-label">Let SmartPark Choose</div>
+                <div class="mode-option-desc">Algorithms select the optimal available slot automatically</div>
+              </div>
+            </div>
+          </label>
+          <label class="mode-option" id="mode-opt-manual">
+            <input type="radio" name="park-mode" value="manual" onchange="onModeChange('manual')"/>
+            <div class="mode-option-body">
+              <div class="mode-option-icon">🗺️</div>
+              <div>
+                <div class="mode-option-label">I Want to Select a Slot</div>
+                <div class="mode-option-desc">Browse the live parking map and pick your preferred slot</div>
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SMART MODE ── -->
+    <div id="pm-smart-panel">
+      <button class="btn btn-primary btn-lg" id="find-slot-btn"
+              onclick="findBestSlot()" style="width:100%;margin-bottom:1rem">
+        🔍 Find Best Slot
+      </button>
+      <div id="alloc-result" style="display:none"></div>
+      <button class="btn btn-success btn-lg" id="confirm-park-btn"
+              onclick="confirmPark()" style="display:none;width:100%;margin-top:0.75rem">
+        ✅ Confirm &amp; Park
+      </button>
+    </div>
+
+    <!-- ── MANUAL MODE ── -->
+    <div id="pm-manual-panel" style="display:none">
+      <button class="btn btn-ghost btn-lg" style="width:100%;margin-bottom:1rem"
+              onclick="openMapSelector()">
+        🗺️ Select from Parking Map
+      </button>
+      <!-- Selected slot display -->
+      <div id="manual-selected-display" style="display:none">
+        <div class="manual-slot-chosen">
+          <div class="manual-slot-badge" id="manual-slot-badge">—</div>
+          <div class="manual-slot-meta" id="manual-slot-meta"></div>
+          <button class="btn btn-secondary btn-sm" onclick="clearManualSlot()">✕ Clear</button>
+        </div>
+        <!-- Binary search explanation -->
+        <div class="bs-explain-box" id="bs-explain-box"></div>
+      </div>
+      <button class="btn btn-success btn-lg" id="confirm-manual-btn"
+              onclick="confirmManualPark()" style="display:none;width:100%;margin-top:0.75rem">
+        ✅ Confirm &amp; Park
+      </button>
+    </div>
+
+  </div><!-- /modal -->
+</div><!-- /modal-backdrop -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     MAP SELECTOR MODAL  (full-screen slot picker)
+     z-index 300 — sits on top of park-modal (z-index 200)
+══════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="map-selector-modal" style="z-index:300"
+     onclick="if(event.target===this){document.getElementById('map-selector-modal').classList.remove('show');}">
+  <div class="modal map-selector-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">🗺️ Select a Parking Slot</span>
+      <button class="modal-close"
+              onclick="document.getElementById('map-selector-modal').classList.remove('show')">&times;</button>
+    </div>
+    <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem">
+      Click any <span class="badge badge-green" style="display:inline-flex">Available</span> slot to select it.
+      <span class="badge badge-red" style="display:inline-flex;margin-left:0.4rem">Occupied</span> slots cannot be selected.
+    </p>
+    <div class="map-selector-lot" id="map-selector-lot">
+      <!-- Populated by renderMapSelector() -->
+      <div style="text-align:center;padding:2rem;color:var(--text-muted)">
+        <span class="spinner"></span> Loading slots…
+      </div>
+    </div>
+    <div id="map-sel-chosen" style="display:none;margin-top:1rem">
+      <div class="manual-slot-chosen">
+        <div class="manual-slot-badge" id="map-sel-badge">—</div>
+        <div class="manual-slot-meta" id="map-sel-meta"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.25rem">
+      <button class="btn btn-success btn-lg" id="map-sel-confirm-btn"
+              onclick="confirmMapSelection()" style="flex:1;display:none">
+        ✅ Use This Slot
+      </button>
+      <button class="btn btn-secondary"
+              onclick="document.getElementById('map-selector-modal').classList.remove('show')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════
+     EXIT VEHICLE MODAL
+══════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="exit-quick-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title">🚪 Exit Vehicle</span>
+      <button class="modal-close" onclick="closeModal('exit-quick-modal')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Vehicle Number</label>
+      <input type="text" id="exit-vehicle-no" class="form-control"
+             placeholder="e.g. MH12AB1234"
+             maxlength="13"
+             style="text-transform:uppercase"
+             oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"/>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1rem">
+      <button class="btn btn-danger btn-lg" id="exit-btn"
+              onclick="exitVehicle()" style="flex:1">🚪 Exit Vehicle</button>
+      <button class="btn btn-secondary" onclick="closeModal('exit-quick-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/parking.js') }}"></script>
+{% endblock %}
